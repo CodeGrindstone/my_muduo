@@ -9,13 +9,14 @@
     2. epoll_ctl    EPOLL_CTL_ADD EPOLL_CTL_MOD EPOLL_CTL_DEL
     3. epoll_wait 
 */
-class Eventloop;
+class EventLoop;
 class EpollPoller : public Poller
 {
 public:
-    EpollPoller(Eventloop* loop);
+    EpollPoller(EventLoop* loop);
     ~EpollPoller() override;
 
+    // 重写基类接口
     Timestamp poll(int timeout, ChannelList* activeChannels) override;
     void updateChannel(Channel*) override;
     void removeChannel(Channel*) override;
@@ -26,6 +27,8 @@ private:
 
 private:
     using EventList = std::vector<struct epoll_event>;
+
+    // Events初始化为16
     static const int kInitEventListSize = 16;
 
     int epollfd_;

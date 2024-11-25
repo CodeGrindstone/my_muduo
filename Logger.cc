@@ -32,9 +32,3 @@ Logger& Logger::GetInstance()
     return logger;
 }
 
-
-int main()
-{
-    LOG_INFO("123456789%d\n", 123);
-    return 0;
-}

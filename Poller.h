@@ -6,13 +6,13 @@
 #include <vector>
 #include <unordered_map>
 
-class Eventloop;
+class EventLoop;
 class Poller : noncopyable
 {
 public:
     using ChannelList = std::vector<Channel*>;
 
-    Poller(Eventloop*);
+    Poller(EventLoop*);
     virtual ~Poller() = default;
 
     // 给所有IO复用提供统一的接口
@@ -21,10 +21,10 @@ public:
     virtual void removeChannel(Channel*) = 0;
     bool hasChannel(Channel* channel) const;
     // Eventloop可以通过该接口获取默认的IO复用的对象
-    static Poller* newDefaultPoller(Eventloop* loop);
+    static Poller* newDefaultPoller(EventLoop* loop);
 protected:
     using ChannelMap = std::unordered_map<int, Channel*>; 
     ChannelMap channels_;
 private:
-    Eventloop* ownerLoop_;
+    EventLoop* ownerLoop_;
 };

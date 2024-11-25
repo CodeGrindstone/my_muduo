@@ -1,6 +1,6 @@
 #include "Poller.h"
 
-Poller::Poller(Eventloop *loop) : ownerLoop_(loop){}
+Poller::Poller(EventLoop *loop) : ownerLoop_(loop){}
 
 bool Poller::hasChannel(Channel *channel) const 
 {

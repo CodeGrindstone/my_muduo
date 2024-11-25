@@ -3,7 +3,10 @@
 #include <sys/syscall.h>
 namespace CurrentThread
 {
-    extern __thread int t_cachedTid;
+    /*
+        每个线程都有一个唯一的ID
+    */
+    extern thread_local int t_cachedTid;
 
     void cacheTid();
 

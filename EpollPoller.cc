@@ -1,12 +1,17 @@
 #include "EpollPoller.h"
+#include <errno.h>
 #include <string.h>
 
+/*
+    表示Channel的状态
+*/
 const int kNew = -1;
 const int kAdded = 1;
 const int kDeleted = 2;
 
-EpollPoller::EpollPoller(Eventloop *loop):
+EpollPoller::EpollPoller(EventLoop *loop):
     Poller(loop),
+    // EPOLL_CLOEXEC：当进程执行exec时，自动关闭该文件描述符
     epollfd_(::epoll_create1(EPOLL_CLOEXEC)),
     events_(kInitEventListSize)
 {
@@ -21,10 +26,48 @@ EpollPoller::~EpollPoller()
     ::close(epollfd_);
 }
 
-Timestamp EpollPoller::poll(int timeout, ChannelList *activeChannels) {
-    return Timestamp();
+
+/*
+功能:
+    向EventLoop提供的接口，监听哪些fd发生事件
+参数:
+    timeout(传入参数): 超时时间
+    activeChannels(传出参数): 通过fillActiveChannels函数push所有发生事件的Channel
+*/
+Timestamp EpollPoller::poll(int timeout, ChannelList *activeChannels)
+{
+    LOG_DEBUG("poll start");
+    int numEvents = epoll_wait(epollfd_, &*events_.begin(), events_.size(), timeout);
+    Timestamp now(Timestamp::now());
+    int saveError = errno;
+    if(numEvents > 0)
+    {
+        LOG_DEBUG("%d Events happened", numEvents);
+        fillActiveChannels(numEvents, activeChannels);
+        if(numEvents == events_.size())
+        {
+            events_.resize(2 * events_.size());
+        }
+    }
+    else if(numEvents == 0) 
+    {
+        LOG_DEBUG("%s timeout!", __FUNCTION__);
+    }
+    else
+    {
+        if(saveError != EINTR)
+        {
+            errno = saveError;
+            LOG_ERROR("EpollPoller::poll() err!");
+        }
+    }
+    return now;
 }
 
+/*
+功能: 
+    向EventLoop提供接口，修改Channel所注册的事件
+*/
 void EpollPoller::updateChannel(Channel* channel)
 {
     const int index = channel->index(); 
@@ -54,7 +97,10 @@ void EpollPoller::updateChannel(Channel* channel)
         }
     }
 }
-// 从poller中删除channel
+
+/*
+向EventLoop提供的接口，删除Channel
+*/
 void EpollPoller::removeChannel(Channel* channel)
 {
     int fd = channel->fd();
@@ -67,7 +113,15 @@ void EpollPoller::removeChannel(Channel* channel)
     }
     channel->set_index(kNew);
 }
-
+/*
+功能:
+    为Channel封装的文件描述符和Event注册进epoll的实施动作
+参数:
+    operation:
+        1) EPOLL_CTL_ADD
+        2) EPOLL_CTL_MOD
+        3) EPOLL_CTL_DEL
+*/
 void EpollPoller::update(int operation, Channel *channel)
 {
     struct epoll_event event;
@@ -85,5 +139,19 @@ void EpollPoller::update(int operation, Channel *channel)
     } 
 }
 
+
+/*
+功能:
+    1.设置所有Channel的就绪事件Channel->revents
+    2.向ChannelList中push发生事件的Channel 
+*/
 void EpollPoller::fillActiveChannels(int numEvents,
-                                     ChannelList *activeChannel) {}
+                                     ChannelList *activeChannel)
+{
+    for(int i = 0; i < numEvents; i++)
+    {
+        Channel* channel = static_cast<Channel*>(events_[i].data.ptr);
+        channel->set_revents(events_[i].events);
+        activeChannel->push_back(channel);
+    }
+}
