@@ -4,19 +4,22 @@
 #include "noncopyable.h"
 
 class Timestamp;
-class Eventloop;
+class EventLoop;
+/*
+    Channel是文件描述符以及对文件描述符的事件回调函数的封装
+*/
 class Channel : noncopyable
 {
 public:
     using EventCallback = std::function<void()>;
     using ReadEventCallback = std::function<void(Timestamp)>;
 
-    Channel(Eventloop* eventloop, int fd);
+    Channel(EventLoop* eventloop, int fd);
     ~Channel();
 
     void handleEvent(Timestamp receiveTime);
 
-    void setReadCallbak(ReadEventCallback cb) { readCallback_ = std::move(cb); }
+    void setReadCallback(ReadEventCallback cb) { readCallback_ = std::move(cb); }
     void setWriteCallback(EventCallback cb)   { writeCallback_ = std::move(cb); }
     void setCloseCallback(EventCallback cb)   { closeCallback_ = std::move(cb); }
     void setErrorCallback(EventCallback cb)   { errorCallback_ = std::move(cb); }
@@ -42,21 +45,25 @@ public:
     int index() const { return index_; }
     void set_index(int index) { index_ = index; }
 
-    Eventloop* ownerLoop() const { return loop_; }
+    EventLoop* ownerLoop() const { return loop_; }
     void remove();
 private:
     void update();
     void handleEventWithGuard(Timestamp receiveTime);
 
 private:
-    static const int kNoneEvent;
-    static const int kReadEvent;
-    static const int kWriteEvent;
+    static const int kNoneEvent; // 无事件
+    static const int kReadEvent; // 读时间
+    static const int kWriteEvent;// 写事件
 
-    Eventloop* loop_;
-    const int fd_;
-    int events_;
-    int revents_;
+    EventLoop* loop_;   // 该Channel所绑定的EventLoop
+    const int fd_;      // 封装的fd
+    int events_;        // 注册事件
+    int revents_;       // 就绪事件
+    /*描述当前Channel的状态:
+        -1 : 新添加，还未注册到epoll
+        1 : 已注册并添加到epoll
+        2 : 已删除 */
     int index_;
 
     std::weak_ptr<void> tie_;
