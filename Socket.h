@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <sys/types.h>
+#include <netinet/tcp.h>
 
 class Socket : noncopyable
 {

@@ -7,7 +7,7 @@ Socket::~Socket()
 
 void Socket::bindAddress(InetAddress const &localaddr)
 {
-    if( 0 != ::bind(sockfd_, localaddr.getSockAddr(), sizeof sockaddr))
+    if( 0 != ::bind(sockfd_, localaddr.getSockAddr(), sizeof(sockaddr)))
     {
         LOG_FATAL("bind sockfd:%d fail", sockfd_);
     }
@@ -42,10 +42,6 @@ void Socket::shutdownWrite()
     }
 }
 
-void Socket::setTcpNoDelay(bool on)
-{
-
-}
 
 void Socket::setTcpNoDelay(bool on)
 {
@@ -71,7 +67,7 @@ void Socket::setReusePort(bool on)
                          &optval, static_cast<socklen_t>(sizeof optval));
     if (ret < 0 && on)
     {
-        aLOG_ERROR("SO_REUSEPORT failed.");
+        LOG_ERROR("SO_REUSEPORT failed.");
     }
 #else
     if (on)
