@@ -4,6 +4,7 @@
 #include "EventLoopThreadPool.h"
 #include "Acceptor.h"
 #include "Callbacks.h"
+#include "TcpConnection.h"
 #include <unordered_map>
 /*
     用户使用muduo编写服务器程序
