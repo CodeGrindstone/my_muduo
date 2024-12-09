@@ -29,6 +29,8 @@ void Thread::start()
     sem_t sem;
     sem_init(&sem, false, 0);     
 
+    // 创建一个线程，执行EventLoopThread::threadFunc
+    // 为了获取新线程的线程号，通过信号量机制同步线程
     thread_ = std::shared_ptr<std::thread>(new std::thread([&](){
         tid_ = CurrentThread::tid();
 

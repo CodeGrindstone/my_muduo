@@ -23,7 +23,7 @@ void Logger::Log(const std::string& msg) const
         break;
     }
 
-    std::cout << "time : " << Timestamp::now().ToString() << msg << std::endl;
+    std::cout << Timestamp::now().ToString() << msg << std::endl;
 }
 
 Logger& Logger::GetInstance()

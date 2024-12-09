@@ -56,6 +56,9 @@ void TcpServer::start()
     }
 }
 
+
+// 在构造TcpServer时，创建了accpetor_，并把TcpServer::NewConnection绑定到Acceptor
+// 当有新连接时->在MainLoop中的Acceptor::handleRead()->TcpServer::NewConnection
 void TcpServer::NewConnection(int sockfd, InetAddress const &peerAddr)
 {
     // 根据轮询算法选择一个subloop来管理对应的channel
@@ -100,7 +103,8 @@ void TcpServer::NewConnection(int sockfd, InetAddress const &peerAddr)
         std::bind(&TcpServer::removeConnection, 
         this, std::placeholders::_1)
     );
-    // 直接调用TcpConnection::connectionEstablish
+
+    // 执行此语句时是在mainLoop，将其入队到ioloop的任务队列，调用TcpConnection::connectionEstablish
     ioloop->runInLoop(
         std::bind(&TcpConnection::connectEstablished,
         conn)

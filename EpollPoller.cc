@@ -36,7 +36,7 @@ EpollPoller::~EpollPoller()
 */
 Timestamp EpollPoller::poll(int timeout, ChannelList *activeChannels)
 {
-    LOG_DEBUG("poll start");
+    //LOG_DEBUG("poll start");
     int numEvents = epoll_wait(epollfd_, &*events_.begin(), events_.size(), timeout);
     Timestamp now(Timestamp::now());
     int saveError = errno;
@@ -51,7 +51,7 @@ Timestamp EpollPoller::poll(int timeout, ChannelList *activeChannels)
     }
     else if(numEvents == 0) 
     {
-        LOG_DEBUG("%s timeout!", __FUNCTION__);
+        //LOG_DEBUG("%s timeout!", __FUNCTION__);
     }
     else
     {
@@ -71,7 +71,7 @@ Timestamp EpollPoller::poll(int timeout, ChannelList *activeChannels)
 void EpollPoller::updateChannel(Channel* channel)
 {
     const int index = channel->index(); 
-    LOG_INFO("func=%s => fd=%d events=%d index=%d\n", __FUNCTION__, channel->fd(), channel->events(), channel->index());
+    LOG_INFO("EpollPoller::%s => fd=%d events=%d index=%d", __FUNCTION__, channel->fd(), channel->events(), channel->index());
     if(index == kNew || index == kDeleted)
     {
         int fd = channel->fd();

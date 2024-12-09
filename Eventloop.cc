@@ -56,7 +56,7 @@ void EventLoop::loop()
 {
     looping_ = true;
     quit_ = false;
-    LOG_DEBUG("EventLoop %p start looping", this);
+    LOG_DEBUG("EventLoop %p start looping ", this);
 
     while(!quit_)
     {
