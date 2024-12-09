@@ -74,7 +74,7 @@ void TcpConnection::send(std::string const &msg)
 /*
     发送数据，应用程序写的快，内核发送慢,需要把带发送数据写入缓冲区，而且设置了水位回调
 */
-void TcpConnection::sendInLoop(const char* message, size_t len)
+void TcpConnection::sendInLoop(const char *message, size_t len)
 {
     ssize_t nwrote = 0;
     size_t remaining = len;
@@ -127,8 +127,7 @@ void TcpConnection::sendInLoop(const char* message, size_t len)
             && highWaterMarkCallback_)
         {
             loop_->queueInLoop(
-                std::bind(
-                    highWaterMarkCallback_, shared_from_this(), oldLen + remaining)
+                std::bind(highWaterMarkCallback_, shared_from_this(), oldLen + remaining)
             );
         }
         outputBuffer_.append(static_cast<const char*>(message) + nwrote, remaining);
@@ -139,36 +138,39 @@ void TcpConnection::sendInLoop(const char* message, size_t len)
     }
 }
 
+// 关闭连接
 void TcpConnection::shutdown() 
-{
+{   
     if(state_ == kConnected)
     {
         setState(kDisconnecting);
-        loop_->runInLoop(
-            std::bind(&TcpConnection::shutdownInLoop, this)
-        );
+        loop_->runInLoop(std::bind(
+            &TcpConnection::shutdownInLoop, this
+        ));
     }
 }
 
-void TcpConnection::connectEstablished() 
+// 建立连接
+void TcpConnection::connectEstablished()
 {
     setState(kConnected);
-    channel_->tie(shared_from_this());
-    channel_->enableReading();  // 向poller注册读时间
+    channel_->tie(shared_from_this());  // 将TcpConnection绑定到Channel上
+    channel_->enableReading();      // 向Poller注册EPOLLIN事件
 
     // 新连接建立，执行回调
     connectionCallback_(shared_from_this());
 }
 
+// 连接销毁
 void TcpConnection::connectDestroyed()
 {
     if(state_ == kConnected)
     {
         setState(kDisconnected);
-        channel_->disableAll();
+        channel_->disableAll(); // 把channel的所以有感兴趣的事件从Poller中delete
         connectionCallback_(shared_from_this());
     }
-    channel_->remove();
+    channel_->remove();     
 }
 
 void TcpConnection::handleRead(Timestamp receiveTime)
@@ -229,7 +231,6 @@ void TcpConnection::handleWrite()
     }
 }
 
-// Poller -> channel::closeCallback -> TcpConnection::handleClose
 void TcpConnection::handleClose() 
 {
     LOG_INFO("TcpConnection::handleClose fd=%d state=%d", channel_->fd(), (int)state_);
@@ -238,7 +239,7 @@ void TcpConnection::handleClose()
 
     TcpConnectionPtr connPtr(shared_from_this());
     connectionCallback_(connPtr);   // 执行连接关闭的回调
-    closeCallback_(connPtr);        // 执行关闭连接的回调, 执行的是TcpServer::removeConnection回调
+    closeCallback_(connPtr);        // 执行关闭连接的回调
 }
 
 void TcpConnection::handleError()
@@ -259,8 +260,9 @@ void TcpConnection::handleError()
 
 void TcpConnection::shutdownInLoop()
 {
-    if(!channel_->isWriting()) // 说明Outputbuffer中的缓冲区数据已发送完
+    if(!channel_->isWriting()) // 表示写缓冲区内的数据全部发送完
     {
-        socket_->shutdownWrite();   // 关闭写端
+        socket_->shutdownWrite();// 关闭写端，触发EPOLLHUP;
+        // =》channel::closeCallback_->TcpConnection::handleClose
     }
 }

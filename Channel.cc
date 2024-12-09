@@ -26,7 +26,7 @@ void Channel::handleEvent(Timestamp receiveTime)
   在EventLoop中调用
   */
     if(tied_){
-      std::shared_ptr<void> guard = tie_.lock();
+      std::shared_ptr<void> guard = tie_.lock();  // 提升
       if(guard){
         handleEventWithGuard(receiveTime);
       }
@@ -36,6 +36,7 @@ void Channel::handleEvent(Timestamp receiveTime)
     }
 }
 
+// 在TcpConnection::connectEstablish中调用channel::tie
 void Channel::tie(const std::shared_ptr<void>& obj)
 {
     tie_ = obj;
