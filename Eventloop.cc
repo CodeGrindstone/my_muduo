@@ -72,7 +72,7 @@ void EventLoop::loop()
         eventHanding_ = false;
         // 执行当前EventLoop事件循环需要处理的回调操作
         /*
-        
+            此回调操作是本线程或其他线程预先在pendingFunctors_队列中注册的
         */
         doPendingFunctor();
     }

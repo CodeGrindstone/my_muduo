@@ -24,6 +24,7 @@ public:
     static Poller* newDefaultPoller(EventLoop* loop);
 protected:
     using ChannelMap = std::unordered_map<int, Channel*>; 
+    // 保存(fd, Channel*)，只有新创建的channel才会被保存到这里
     ChannelMap channels_;
 private:
     EventLoop* ownerLoop_;

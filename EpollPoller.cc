@@ -86,7 +86,7 @@ void EpollPoller::updateChannel(Channel* channel)
     {
         // update existing one with EPOLL_CTL_MOD/DEL
         int fd = channel->fd();
-        if(channel->isNonEvent())
+        if(channel->isNonEvent()) //表示channel无感兴趣事件，应被删除
         {
             update(EPOLL_CTL_DEL, channel);
             channel->set_index(kDeleted);
@@ -99,7 +99,7 @@ void EpollPoller::updateChannel(Channel* channel)
 }
 
 /*
-向EventLoop提供的接口，删除Channel
+    向EventLoop提供的接口，删除Channel
 */
 void EpollPoller::removeChannel(Channel* channel)
 {

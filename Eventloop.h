@@ -65,5 +65,4 @@ private:
 
     std::mutex mutex_; // 保护pendingFunctors的线程安全
     std::vector<Functor> pendingFunctors_; // 存储此loop需要执行的所有回调函数
-
 };
