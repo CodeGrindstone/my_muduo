@@ -26,12 +26,12 @@ public:
 private:
     void setDefaultName();
 private:
-    static std::atomic_int numCreated_;
+    static std::atomic_int numCreated_; // 已创建线程的数量
 
-    bool started_;
-    bool joined_;
-    std::shared_ptr<std::thread> thread_;
-    pid_t tid_;
-    ThreadFunc func_;
-    std::string name_;
+    bool started_;  // 是否开始运行函数
+    bool joined_;   // 是否join
+    std::shared_ptr<std::thread> thread_;   // 线程
+    pid_t tid_;  // TID
+    ThreadFunc func_;   // 要运行的函数
+    std::string name_;  // 线程的名字
 };
