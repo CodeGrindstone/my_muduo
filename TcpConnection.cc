@@ -76,9 +76,9 @@ void TcpConnection::send(std::string const &msg)
 */
 void TcpConnection::sendInLoop(const char *message, size_t len)
 {
-    ssize_t nwrote = 0;
-    size_t remaining = len;
-    bool faultError = false;
+    ssize_t nwrote = 0;         // 本次已写字节
+    size_t remaining = len;     // 剩余字节
+    bool faultError = false;    // 是否发生错误
 
     if(state_ == kDisconnected)
     {
@@ -86,10 +86,10 @@ void TcpConnection::sendInLoop(const char *message, size_t len)
         return;
     }
 
-    // 表示channel第一次写数据=> fd未注册写事件并且发送缓冲区可读字节为0
+    // 表示channel第一次写数据=> fd未注册写事件&&发送缓冲区可读字节为0
     if(!channel_->isWriting() && outputBuffer_.readableBytes() == 0)
     {
-        nwrote = ::write(channel_->fd(), message, len);
+        nwrote = ::write(channel_->fd(), message, len); // 向内核缓冲区写数据
         if(nwrote >= 0)
         {
             remaining = len - nwrote;
@@ -116,24 +116,34 @@ void TcpConnection::sendInLoop(const char *message, size_t len)
         }
     }
 
-    //说明当前这一次write并没有全部发送完毕,剩余的数据需要保存到缓冲区中
-    // 然后给Channel注册EPOLLOUT事件，poller发现tcp的发送缓冲区有空间，会通知sock - channel，调用writeCallback_回调
-    // 也就是调用TcpConnection::handleWrite方法，把发送缓冲区中的数据全部发送完为止
-    if(!faultError && remaining > 0)
+    /*
+    下面此判断逻辑说明：
+        1.当前这一次write并没有全部发送完毕,需要将剩余的数据保存到缓冲区outputBuffer_中
+        2.给Channel注册EPOLLOUT事件，poller发现tcp的发送缓冲区有空间，会通知sock - channel，调用writeCallback_回调
+        3.就是调用TcpConnection::handleWrite方法，把发送缓冲区中的数据全部发送完为止
+    */
+    if(!faultError && remaining > 0)    // 这次write系统调用无错误 && 还有剩余数据待发送
     {
-        size_t oldLen = outputBuffer_.readableBytes();
+        /*
+            如果在某次调用sendInLoop并未一次性地把数据全部发送完，会把数据存到缓冲区；
+            待下一次调用sendInLoop会取到上次未读完的数据
+        */
+        size_t oldLen = outputBuffer_.readableBytes();  
         if(oldLen + remaining >= highWaterMark_
             && oldLen < highWaterMark_
-            && highWaterMarkCallback_)
+            && highWaterMarkCallback_)  
+            // 旧数据 + 此次未写数据 >= 高水位标志 && 旧数据 < 高水位标志 
+            // => 意味着 此次未写数据要使写缓冲区待发送数据（缓冲区待发送数据 = 旧数据 + 此次未写数据）>=高水位标志
         {
             loop_->queueInLoop(
                 std::bind(highWaterMarkCallback_, shared_from_this(), oldLen + remaining)
             );
         }
+        // 将此次未写数据添加到 缓冲区
         outputBuffer_.append(static_cast<const char*>(message) + nwrote, remaining);
         if(!channel_->isWriting())
         {
-            channel_->enableReading();
+            channel_->enableWriting();  // 设置EPOLLOUT事件
         }
     }
 }
@@ -214,6 +224,11 @@ void TcpConnection::handleWrite()
                         std::bind(writeCompleteCallback_, shared_from_this())
                     );
                 }
+                /*
+                    为什么要判断连接状态？
+                    1.保证在断开连接前，所有待发送的数据都已发送完毕。
+                    2.实现优雅关闭（）
+                */
                 if(state_ == kDisconnecting)
                 {
                     shutdownInLoop();
